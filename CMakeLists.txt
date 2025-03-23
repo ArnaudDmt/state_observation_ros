@@ -9,17 +9,33 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   sensor_msgs
   geometry_msgs
+  message_generation
+  message_filters 
 )
 
 find_package(state-observation REQUIRED)
 
+
+
+add_message_files(
+  FILES
+  state_msgs.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  geometry_msgs
+)
+
 ## Declare catkin package
-catkin_package()
+catkin_package(
+  CATKIN_DEPENDS roscpp sensor_msgs geometry_msgs message_filters message_runtime 
+)
 
 ## Include directories
 include_directories(
   ${catkin_INCLUDE_DIRS}
-  ${state-observation_INCLUDE_DIRS}  # If your state-estimation library has its own include paths
+  ${state-observation_INCLUDE_DIRS} 
 )
 
 ## Macro to add a ROS observer node
