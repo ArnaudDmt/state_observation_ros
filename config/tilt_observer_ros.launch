@@ -1,10 +1,14 @@
 <?xml version="1.0"?>
 <launch>
+    <node name="rosbag_record" pkg="rosbag" type="record" args="-O /tmp/estimated_state.bag /Tilt/estimated_state" output="screen"/>
 	<node name="tilt_observer_ros" pkg="state_observation_ros" type="tilt_observer_ros" output="screen">
-		<arg name="no_sync" value="false" />
-		<param name="alpha" value="5" />
-		<param name="beta" value="1" />
-		<param name="gamma" value="2" />
-		<param name="dt" value="0.005" />
-	</node>
+        <param name="no_sync" value="true"/>
+		<param name="alpha" value="5"/>
+		<param name="beta" value="1"/>
+		<param name="gamma" value="2"/>
+		<param name="dt" value="0.005"/>
+    </node>
+	<!-- <group>
+    	<node name="rosbag_exit" pkg="rosbag" type="rosbag" args="play /path/to/output.bag" respawn="false"/>
+  	</group> -->
 </launch>
