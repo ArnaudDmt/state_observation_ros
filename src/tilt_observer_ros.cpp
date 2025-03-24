@@ -6,7 +6,6 @@
 #include <sensor_msgs/Imu.h>
 #include <state-observation/observer/tilt-estimator.hpp>
 #include <state_observation_ros/state_msgs.h>
-#include <std_msgs/Bool.h>
 #include <std_msgs/Empty.h>
 #include <std_msgs/Float64MultiArray.h>
 
@@ -25,7 +24,7 @@ public:
 
     nh_.param("tilt_observer_ros/no_sync", noSync_, false);
     iter_computed_pub_ =
-        nh_.advertise<std_msgs::Bool>("Tilt/iter_finished", 1, true);
+        nh_.advertise<std_msgs::Empty>("Tilt/iter_finished", 1, true);
 
     // std_msgs::Empty iter_computed_msg;
     // iter_computed_pub_.publish(iter_computed_msg);
@@ -83,12 +82,11 @@ private:
     // Initialize estimator with the received state
     estimator_.initEstimator(initial_state);
 
-    std_msgs::Bool iter_computed_msg;
-    iter_computed_msg.data = true;
+    std_msgs::Empty iter_computed_msg;
     iter_computed_pub_.publish(iter_computed_msg);
 
     ROS_INFO("Initial state received and set. Ready to receive measurements.");
-    // initial_state_sub_.shutdown();
+    initial_state_sub_.shutdown();
   }
 
   void
@@ -105,6 +103,9 @@ private:
     linVel_measurement_ = stateObservation::Vector3(
         vel_msg->vector.x, vel_msg->vector.y, vel_msg->vector.z);
 
+    timestamp_ = imu_msg->header.stamp.toSec();
+
+    ROS_INFO_STREAM(timestamp_);
     if (noSync_) {
       iterate();
     }
@@ -126,12 +127,8 @@ private:
 
     Eigen::VectorXd state_ = estimator_.getEstimatedState(k + 1);
 
-    std_msgs::Bool iter_computed_msg;
-    iter_computed_msg.data = true;
-    iter_computed_pub_.publish(iter_computed_msg);
-
     state_observation_ros::state_msgs state_msg;
-    state_msg.header.stamp = ros::Time(dt_ * (k + 1));
+    state_msg.timestamp = timestamp_;
     state_msg.x1.x = state_(0);
     state_msg.x1.y = state_(1);
     state_msg.x1.z = state_(2);
@@ -144,16 +141,10 @@ private:
     state_msg.x2.y = state_(7);
     state_msg.x2.z = state_(8);
 
-    // msg.data.resize(
-    //     state_.size()); // Resize the data array to match the size of state_
-    // for (int i = 0; i < state_.size(); ++i) {
-    //   msg.data[i] =
-    //       state_(i); // Copy data from Eigen::VectorXd to std::vector<double>
-    // }
-
     state_pub_.publish(state_msg);
 
-    ROS_INFO_STREAM(state_.transpose());
+    std_msgs::Empty iter_computed_msg;
+    iter_computed_pub_.publish(iter_computed_msg);
 
     ROS_INFO("Iteration completed.");
   }
@@ -173,6 +164,7 @@ private:
   std::shared_ptr<message_filters::Synchronizer<syncPolicy>> sync_;
   double dt_;
   ros::Timer timer_;
+  double timestamp_;
   stateObservation::TiltEstimator estimator_;
 
   Eigen::VectorXd state_;
