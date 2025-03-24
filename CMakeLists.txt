@@ -47,3 +47,4 @@ endmacro()
 
 ## Add the ROS observer node
 add_ros_observer(tilt_observer_ros)
+add_ros_observer(tilt_observer_humanoid_ros)

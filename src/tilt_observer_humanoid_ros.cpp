@@ -4,7 +4,7 @@
 #include <message_filters/sync_policies/approximate_time.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
-#include <state-observation/observer/tilt-estimator.hpp>
+#include <state-observation/observer/tilt-estimator-humanoid.hpp>
 #include <state_observation_ros/state_msgs.h>
 #include <std_msgs/Empty.h>
 #include <std_msgs/Float64MultiArray.h>
@@ -14,49 +14,53 @@ void stopRosbag() {
   ROS_INFO("Rosbag recording stopped.");
 }
 
-class TiltEstimatorROS {
+class TiltEstimatorHumanoidROS {
   typedef message_filters::sync_policies::ApproximateTime<
-      sensor_msgs::Imu, geometry_msgs::Vector3Stamped>
+      sensor_msgs::Imu, geometry_msgs::Vector3Stamped,
+      geometry_msgs::Vector3Stamped>
       syncPolicy;
 
 public:
-  TiltEstimatorROS(ros::NodeHandle &nh) : nh_(nh), estimator_() {
+  TiltEstimatorHumanoidROS(ros::NodeHandle &nh) : nh_(nh), estimator_() {
 
     nh_.param("tilt_observer_ros/no_sync", noSync_, false);
     iter_computed_pub_ =
-        nh_.advertise<std_msgs::Empty>("Tilt/iter_finished", 1, true);
+        nh_.advertise<std_msgs::Empty>("TiltHumanoid/iter_finished", 1, true);
 
     // std_msgs::Empty iter_computed_msg;
     // iter_computed_pub_.publish(iter_computed_msg);
 
-    imu_sub_.subscribe(nh_, "Tilt/imu_measurements", 1);
-    vel_sub_.subscribe(nh_, "Tilt/linVel_measurements", 1);
+    imu_sub_.subscribe(nh_, "TiltHumanoid/imu_measurements", 1);
+    imuControlPos_sub_.subscribe(nh_, "TiltHumanoid/imuControlPos_measurements",
+                                 1);
+    imuControlVel_sub_.subscribe(nh_, "TiltHumanoid/imuControlVel_measurements",
+                                 1);
 
     sync_.reset(new message_filters::Synchronizer<syncPolicy>(
-        syncPolicy(10), imu_sub_, vel_sub_));
-    sync_->registerCallback(std::bind(&TiltEstimatorROS::measurementCallback,
-                                      this, std::placeholders::_1,
-                                      std::placeholders::_2));
+        syncPolicy(10), imu_sub_, imuControlPos_sub_, imuControlVel_sub_));
+    sync_->registerCallback(std::bind(
+        &TiltEstimatorHumanoidROS::measurementCallback, this,
+        std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
     state_pub_ = nh_.advertise<state_observation_ros::state_msgs>(
-        "Tilt/estimated_state", 1, true);
+        "TiltHumanoid/estimated_state", 1, true);
 
     if (noSync_) {
       ROS_INFO("Running without sync.");
       iterate_trigger_sub_ = nh_.subscribe<std_msgs::Empty>(
-          "Tilt/terminate_trigger", 1, &TiltEstimatorROS::terminateEstimator,
-          this);
+          "TiltHumanoid/terminate_trigger", 1,
+          &TiltEstimatorHumanoidROS::terminateEstimator, this);
     } else {
       ROS_INFO("Running at real speed.");
       timer_ = nh_.createTimer(ros::Duration(dt_),
-                               &TiltEstimatorROS::runSynchedIter, this);
+                               &TiltEstimatorHumanoidROS::runSynchedIter, this);
     }
 
     ROS_INFO("Waiting for the initial state of the estimator.");
 
     std_msgs::Float64MultiArray::ConstPtr init_msg =
         ros::topic::waitForMessage<std_msgs::Float64MultiArray>(
-            "Tilt/initState");
+            "TiltHumanoid/initState");
 
     if (init_msg) {
       init(init_msg);
@@ -89,9 +93,10 @@ private:
     initial_state_sub_.shutdown();
   }
 
-  void
-  measurementCallback(const sensor_msgs::ImuConstPtr &imu_msg,
-                      const geometry_msgs::Vector3StampedConstPtr &vel_msg) {
+  void measurementCallback(
+      const sensor_msgs::ImuConstPtr &imu_msg,
+      const geometry_msgs::Vector3StampedConstPtr &imuControlPos_msg,
+      const geometry_msgs::Vector3StampedConstPtr &imuControlVel_msg) {
     ROS_INFO("Received measurements.");
     gyro_measurement_ = stateObservation::Vector3(imu_msg->angular_velocity.x,
                                                   imu_msg->angular_velocity.y,
@@ -100,14 +105,23 @@ private:
         imu_msg->linear_acceleration.x, imu_msg->linear_acceleration.y,
         imu_msg->linear_acceleration.z);
 
-    linVel_measurement_ = stateObservation::Vector3(
-        vel_msg->vector.x, vel_msg->vector.y, vel_msg->vector.z);
+    imuControlPos_measurement_ = stateObservation::Vector3(
+        imuControlPos_msg->vector.x, imuControlPos_msg->vector.y,
+        imuControlPos_msg->vector.z);
+
+    imuControlVel_measurement_ = stateObservation::Vector3(
+        imuControlVel_msg->vector.x, imuControlVel_msg->vector.y,
+        imuControlVel_msg->vector.z);
+
+    linVel_measurement_ = -gyro_measurement_.cross(imuControlPos_measurement_) -
+                          imuControlVel_measurement_;
 
     // the sampling time is defined by the time between consecutive
     // measurements.
     estimator_.setSamplingTime(imu_msg->header.stamp.toSec() - timestamp_);
     timestamp_ = imu_msg->header.stamp.toSec();
 
+    ROS_INFO_STREAM(timestamp_);
     if (noSync_) {
       iterate();
     }
@@ -160,14 +174,15 @@ private:
   ros::NodeHandle &nh_;
   ros::Subscriber initial_state_sub_, iterate_trigger_sub_;
   message_filters::Subscriber<sensor_msgs::Imu> imu_sub_;
-  message_filters::Subscriber<geometry_msgs::Vector3Stamped> vel_sub_;
+  message_filters::Subscriber<geometry_msgs::Vector3Stamped> imuControlPos_sub_;
+  message_filters::Subscriber<geometry_msgs::Vector3Stamped> imuControlVel_sub_;
 
   ros::Publisher state_pub_, iter_computed_pub_;
   std::shared_ptr<message_filters::Synchronizer<syncPolicy>> sync_;
   double dt_;
   ros::Timer timer_;
   double timestamp_;
-  stateObservation::TiltEstimator estimator_;
+  stateObservation::TiltEstimatorHumanoid estimator_;
 
   Eigen::VectorXd state_;
   bool noSync_;
@@ -176,13 +191,15 @@ private:
   bool vel_received_ = false;
   stateObservation::Vector3 gyro_measurement_;
   stateObservation::Vector3 accelero_measurement_;
+  stateObservation::Vector3 imuControlPos_measurement_;
+  stateObservation::Vector3 imuControlVel_measurement_;
   stateObservation::Vector3 linVel_measurement_;
 };
 
 int main(int argc, char **argv) {
   ros::init(argc, argv, "state_estimator");
   ros::NodeHandle nh;
-  TiltEstimatorROS node(nh);
+  TiltEstimatorHumanoidROS node(nh);
   ros::spin();
   return 0;
 }
