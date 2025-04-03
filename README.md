@@ -64,13 +64,13 @@ Adaptation of the Tilt Observer to the case of humanoid robots, where the IMU's 
 ## Use of the ROS wrappers
 - **Tilt Observer**: 
     - Subscribers: 
-        - **Tilt/initState** (<std_msgs::Float64MultiArray>): initial state vector. $\hat{\boldsymbol{x}}_{2}$ can be initialized from $=\boldsymbol{R}_{init}^{T}\boldsymbol{e}_{z}$.
-        - **Tilt/imu_measurements** (<sensor_msgs::Imu>): measurements from the IMU (accelerometer + gyrometer).
-        - **Tilt/linVel_measurements**: (<geometry_msgs::Vector3Stamped>): measurement of the IMU's local linear velocity.
-        - Tilt/terminate_trigger (<std_msgs::Empty>): trigger for the clean termination of the estimator.
+        - **Tilt/initState** (`<std_msgs::Float64MultiArray>`): initial state vector. $\hat{\boldsymbol{x}}_{2}$ can be initialized from $=\boldsymbol{R}_{init}^{T}\boldsymbol{e}_{z}$.
+        - **Tilt/imu_measurements** (`<sensor_msgs::Imu>`): measurements from the IMU (accelerometer + gyrometer).
+        - **Tilt/linVel_measurements**: (`<geometry_msgs::Vector3Stamped>`): measurement of the IMU's local linear velocity.
+        - Tilt/terminate_trigger (`<std_msgs::Empty>`): trigger for the clean termination of the estimator.
     - Publishers: 
-        - **Tilt/estimated_state** (<state_observation_ros::state_msgs>): estimated state vector $\hat{\boldsymbol{x}} = (\hat{\boldsymbol{x}}_{1}, \hat{\boldsymbol{x}}_{2}^{\prime}, \hat{\boldsymbol{x}}_{2})$.
-        - Tilt/iter_finished (<std_msgs::Empty>): trigger that might be useful if the node publishing the measurements needs to be informed that the iteration is finished.
+        - **Tilt/estimated_state** (`<state_observation_ros::state_msgs>`): estimated state vector $\hat{\boldsymbol{x}} = (\hat{\boldsymbol{x}}_{1}, \hat{\boldsymbol{x}}_{2}^{\prime}, \hat{\boldsymbol{x}}_{2})$.
+        - Tilt/iter_finished (`<std_msgs::Empty>`): trigger that might be useful if the node publishing the measurements needs to be informed that the iteration is finished.
     - Parameters: 
         - alpha: gain $\alpha_{1}$ in the paper, related to the convergence of the linear velocity $\hat{\boldsymbol{x}}_{1}$.
         - beta: gain $\alpha_{2}$ in the paper, related to the convergence of the intermediate tilt $\hat{\boldsymbol{x}}_{2}^{\prime}$.
@@ -84,14 +84,14 @@ Adaptation of the Tilt Observer to the case of humanoid robots, where the IMU's 
 
 - **Tilt Observer**: 
     - Subscribers: 
-        - **TiltHumanoid/initState** (<std_msgs::Float64MultiArray>): initial state vector. $\hat{\boldsymbol{x}}_{2}$ can be initialized from $=\boldsymbol{R}_{init}^{T}\boldsymbol{e}_{z}$.
-        - **TiltHumanoid/imu_measurements** (<sensor_msgs::Imu>): measurements from the IMU (accelerometer + gyrometer).
-        - **TiltHumanoid/imuControlPos_measurements**: (<geometry_msgs::Vector3Stamped>): measurement of the IMU's position in the control frame.
-        - **TiltHumanoid/imuControlVel_measurements**: (<geometry_msgs::Vector3Stamped>): measurement of the IMU's linear velocity in the control frame.
-        - Tilt/terminate_trigger (<std_msgs::Empty>): trigger for the clean termination of the estimator.
+        - **TiltHumanoid/initState** (`<std_msgs::Float64MultiArray>`): initial state vector. $\hat{\boldsymbol{x}}_{2}$ can be initialized from $=\boldsymbol{R}_{init}^{T}\boldsymbol{e}_{z}$.
+        - **TiltHumanoid/imu_measurements** (`<sensor_msgs::Imu>`): measurements from the IMU (accelerometer + gyrometer).
+        - **TiltHumanoid/imuControlPos_measurements**: (`<geometry_msgs::Vector3Stamped>`): measurement of the IMU's position in the control frame.
+        - **TiltHumanoid/imuControlVel_measurements**: (`<geometry_msgs::Vector3Stamped>`): measurement of the IMU's linear velocity in the control frame.
+        - Tilt/terminate_trigger (`<std_msgs::Empty>`): trigger for the clean termination of the estimator.
     - Publishers: 
-        - **TiltHumanoid/estimated_state** (<state_observation_ros::state_msgs>): estimated state vector $\hat{\boldsymbol{x}} = (\hat{\boldsymbol{x}}_{1}, \hat{\boldsymbol{x}}_{2}^{\prime}, \hat{\boldsymbol{x}}_{2})$.
-        - TiltHumanoid/iter_finished (<std_msgs::Empty>): trigger that might be useful if the node publishing the measurements needs to be informed that the iteration is finished.
+        - **TiltHumanoid/estimated_state** (`<state_observation_ros::state_msgs>`): estimated state vector $\hat{\boldsymbol{x}} = (\hat{\boldsymbol{x}}_{1}, \hat{\boldsymbol{x}}_{2}^{\prime}, \hat{\boldsymbol{x}}_{2})$.
+        - TiltHumanoid/iter_finished (`<std_msgs::Empty>`): trigger that might be useful if the node publishing the measurements needs to be informed that the iteration is finished.
     - Parameters: 
         - alpha: gain $\alpha_{1}$ in the paper, related to the convergence of the linear velocity $\hat{\boldsymbol{x}}_{1}$.
         - beta: gain $\alpha_{2}$ in the paper, related to the convergence of the intermediate tilt $\hat{\boldsymbol{x}}_{2}^{\prime}$.
