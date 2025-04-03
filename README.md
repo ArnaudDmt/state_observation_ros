@@ -111,13 +111,18 @@ Adaptation of the Tilt Observer to the case of humanoid robots, where the IMU's 
 - **Kinetics Observer**: [*The Kinetics Observer: A Tightly Coupled Estimator for Legged Robots*](https://hal.science/hal-04616647), by Demont et al. 
     - Measurements: 
         - IMU's accelerometer and gyrometer.
-        - IMU's local linear velocity.
+        - Robot's joint encoders.
+        - Force / torque sensors. 
     - State: 
-        - IMU's local linear velocity. 
-        - IMU's tilt ($=\boldsymbol{R}^{T}\boldsymbol{e}_{z}$): the inclination of the IMU with respect to the vertical axis.
+        - Centroid frame's position ($\boldsymbol{p}_{l}=\boldsymbol{R}^{T}\boldsymbol{p}$) and orientation in the world.
+        - Centroid frame's linear ($\boldsymbol{v}_{l}=\boldsymbol{R}^{T}\dot{\boldsymbol{p}}$) and angular velocities in the world.
+        - Gyrometer measurement biases.
+        - Resultant of the unmodeled external wrench applied to the robot, expressed in the centroid frame.
+        - Contact rest poses in the world.
+        - Contact reaction wrench.
     - Features: 
-        - Based on a complementary filter, allowing for a very fast computation.
-        - The estimation error's dynamics is autonomous and its convergence is mathematically proven.
+        - Based on a Multiplicative Extended Kalman Filter.
+        - Performs a proprioceptive odometry, which is corrected by the wrench sensor measurements. This provides the observability of contact slippage in the frame attached to the robot.
         
 ### Misc
 - Implementation of ROS2 wrappers.
