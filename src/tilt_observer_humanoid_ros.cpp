@@ -23,7 +23,7 @@ class TiltEstimatorHumanoidROS {
 public:
   TiltEstimatorHumanoidROS(ros::NodeHandle &nh) : nh_(nh), estimator_() {
 
-    nh_.param("tilt_observer_ros/no_sync", noSync_, false);
+    nh_.param("tilt_observer_humanoid_ros/no_sync", noSync_, false);
     iter_computed_pub_ =
         nh_.advertise<std_msgs::Empty>("TiltHumanoid/iter_finished", 1, true);
 
@@ -77,10 +77,10 @@ private:
       initial_state[i] = msg->data[i];
     }
 
-    estimator_.setAlpha(nh_.param("tilt_observer_ros/alpha", 5.0));
-    estimator_.setBeta(nh_.param("tilt_observer_ros/beta", 1.0));
-    estimator_.setGamma(nh_.param("tilt_observer_ros/gamma", 2.0));
-    nh_.param("dt", dt_, 0.005);
+    estimator_.setAlpha(nh_.param("tilt_observer_humanoid_ros/alpha", 5.0));
+    estimator_.setBeta(nh_.param("tilt_observer_humanoid_ros/beta", 1.0));
+    estimator_.setGamma(nh_.param("tilt_observer_humanoid_ros/gamma", 2.0));
+    nh_.param("tilt_observer_humanoid_ros/dt", dt_, 0.005);
     estimator_.setSamplingTime(dt_);
 
     // Initialize estimator with the received state

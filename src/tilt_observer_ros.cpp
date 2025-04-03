@@ -76,7 +76,7 @@ private:
     estimator_.setAlpha(nh_.param("tilt_observer_ros/alpha", 5.0));
     estimator_.setBeta(nh_.param("tilt_observer_ros/beta", 1.0));
     estimator_.setGamma(nh_.param("tilt_observer_ros/gamma", 2.0));
-    nh_.param("dt", dt_, 0.005);
+    nh_.param("tilt_observer_ros/dt", dt_, 0.005);
     estimator_.setSamplingTime(dt_);
 
     // Initialize estimator with the received state
