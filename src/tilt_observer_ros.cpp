@@ -23,11 +23,6 @@ public:
   TiltEstimatorROS(ros::NodeHandle &nh) : nh_(nh), estimator_() {
 
     nh_.param("tilt_observer_ros/no_sync", noSync_, false);
-    iter_computed_pub_ =
-        nh_.advertise<std_msgs::Empty>("Tilt/iter_finished", 1, true);
-
-    // std_msgs::Empty iter_computed_msg;
-    // iter_computed_pub_.publish(iter_computed_msg);
 
     imu_sub_.subscribe(nh_, "Tilt/imu_measurements", 1);
     vel_sub_.subscribe(nh_, "Tilt/linVel_measurements", 1);
@@ -47,7 +42,9 @@ public:
           "Tilt/terminate_trigger", 1, &TiltEstimatorROS::terminateEstimator,
           this);
     } else {
-      ROS_INFO("Running at real speed.");
+      nh_.param("tilt_observer_ros/dt", dt_, 0.005);
+      ROS_INFO("Running at real speed. Timestep: dt = %f", dt_);
+      estimator_.setSamplingTime(dt_);
       timer_ = nh_.createTimer(ros::Duration(dt_),
                                &TiltEstimatorROS::runSynchedIter, this);
     }
@@ -76,16 +73,17 @@ private:
     estimator_.setAlpha(nh_.param("tilt_observer_ros/alpha", 5.0));
     estimator_.setBeta(nh_.param("tilt_observer_ros/beta", 1.0));
     estimator_.setGamma(nh_.param("tilt_observer_ros/gamma", 2.0));
-    nh_.param("tilt_observer_ros/dt", dt_, 0.005);
-    estimator_.setSamplingTime(dt_);
 
-    // Initialize estimator with the received state
     estimator_.initEstimator(initial_state);
-
-    std_msgs::Empty iter_computed_msg;
-    iter_computed_pub_.publish(iter_computed_msg);
+    Eigen::VectorXd state = estimator_.getCurrentEstimatedState();
 
     ROS_INFO("Initial state received and set. Ready to receive measurements.");
+
+    state_observation_ros::state_msgs state_msg;
+    fillStateMessage(state_msg, state);
+
+    state_pub_.publish(state_msg);
+
     initial_state_sub_.shutdown();
   }
 
@@ -103,12 +101,9 @@ private:
     linVel_measurement_ = stateObservation::Vector3(
         vel_msg->vector.x, vel_msg->vector.y, vel_msg->vector.z);
 
-    // the sampling time is defined by the time between consecutive
-    // measurements.
-    estimator_.setSamplingTime(imu_msg->header.stamp.toSec() - timestamp_);
-    timestamp_ = imu_msg->header.stamp.toSec();
-
     if (noSync_) {
+      estimator_.setSamplingTime(imu_msg->header.stamp.toSec() - timestamp_);
+      timestamp_ = imu_msg->header.stamp.toSec();
       iterate();
     }
   }
@@ -116,6 +111,7 @@ private:
   void runSynchedIter(const ros::TimerEvent &) {
     ROS_WARN_COND(!imu_received_ || vel_received_,
                   "Measurements were not received in time.");
+    timestamp_ += dt_;
     iterate();
   }
 
@@ -127,28 +123,32 @@ private:
     estimator_.setMeasurement(linVel_measurement_, accelero_measurement_,
                               gyro_measurement_, k + 1);
 
-    Eigen::VectorXd state_ = estimator_.getEstimatedState(k + 1);
+    Eigen::VectorXd state = estimator_.getEstimatedState(k + 1);
 
     state_observation_ros::state_msgs state_msg;
-    state_msg.timestamp = timestamp_;
-    state_msg.x1.x = state_(0);
-    state_msg.x1.y = state_(1);
-    state_msg.x1.z = state_(2);
-
-    state_msg.x2_prime.x = state_(3);
-    state_msg.x2_prime.y = state_(4);
-    state_msg.x2_prime.z = state_(5);
-
-    state_msg.x2.x = state_(6);
-    state_msg.x2.y = state_(7);
-    state_msg.x2.z = state_(8);
+    fillStateMessage(state_msg, state);
 
     state_pub_.publish(state_msg);
 
-    std_msgs::Empty iter_computed_msg;
-    iter_computed_pub_.publish(iter_computed_msg);
+    ROS_INFO("Iteration completed: t = %f", timestamp_);
+  }
 
-    ROS_INFO("Iteration completed.");
+  void
+  fillStateMessage(state_observation_ros::state_msgs &stateMsg,
+                   stateObservation::ObserverBase::StateVector &stateVector) {
+
+    stateMsg.timestamp = timestamp_;
+    stateMsg.x1.x = stateVector(0);
+    stateMsg.x1.y = stateVector(1);
+    stateMsg.x1.z = stateVector(2);
+
+    stateMsg.x2_prime.x = stateVector(3);
+    stateMsg.x2_prime.y = stateVector(4);
+    stateMsg.x2_prime.z = stateVector(5);
+
+    stateMsg.x2.x = stateVector(6);
+    stateMsg.x2.y = stateVector(7);
+    stateMsg.x2.z = stateVector(8);
   }
 
   void terminateEstimator(const std_msgs::Empty::ConstPtr &msg) {
@@ -162,14 +162,13 @@ private:
   message_filters::Subscriber<sensor_msgs::Imu> imu_sub_;
   message_filters::Subscriber<geometry_msgs::Vector3Stamped> vel_sub_;
 
-  ros::Publisher state_pub_, iter_computed_pub_;
+  ros::Publisher state_pub_;
   std::shared_ptr<message_filters::Synchronizer<syncPolicy>> sync_;
   double dt_;
   ros::Timer timer_;
-  double timestamp_;
+  double timestamp_ = 0.0;
   stateObservation::TiltEstimator estimator_;
 
-  Eigen::VectorXd state_;
   bool noSync_;
 
   bool imu_received_ = false;

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
-    <node name="rosbag_record" pkg="rosbag" type="record" args="-O /tmp/estimated_state.bag /TiltHumanoid/estimated_state" output="screen"/>
-	<node name="tilt_observer_humanoid_ros" pkg="state_observation_ros" type="tilt_observer_humanoid_ros" output="screen">
+    <node name="rosbag_record" pkg="rosbag" type="record" args="-O /tmp/estimated_state_tilt_humanoid.bag /TiltHumanoid/estimated_state" output="screen"/>
+	<node name="tilt_observer_humanoid_ros" pkg="state_observation_ros" type="tilt_observer_humanoid_ros" output="screen" required="true" >
         <param name="no_sync" value="true"/>
 		<param name="alpha" value="5"/>
 		<param name="beta" value="1"/>
