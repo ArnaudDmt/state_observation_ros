@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+    <node name="rosbag_record" pkg="rosbag" type="record" args="-O /tmp/estimated_state.bag /Viking/estimated_state" output="screen"/>
+	<node name="viking_ros" pkg="state_observation_ros" type="viking_ros" output="screen">
+        <param name="no_sync" value="true"/>
+		<param name="alpha" value="5"/>
+		<param name="beta" value="1"/>
+		<param name="gamma" value="2"/>
+		<param name="dt" value="0.005"/>
+    </node>
+</launch>

@@ -1,0 +1,5 @@
+If:
+  PathMatch: .*\.(cpp|hpp|h)$
+
+CompileFlags:
+  Add: [-I/home/arnaud/devel/src/catkin_ws/devel/include/]
